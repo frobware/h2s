@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+set -eu
+
+host=$(oc get routes h2spec-goserver-${1:-passthrough} -o json | jq -r '.spec.host')
+echo "Running h2spec tests against: $host"
+oc exec h2spec -- h2spec --insecure --tls --strict --host $host

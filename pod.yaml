@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: server
+spec:
+  containers:
+  - name: server
+    image: golang:1.14
+    # command: ["/bin/bash", "-ec", "while :; do echo '.'; sleep 5; done"]
+    command: ["/bin/bash"]
+    args: ["-c", "cd /go/src && go build -mod=readonly -o /tmp/server server.go && /tmp/server"]
+    volumeMounts:
+    - name: src-volume
+      mountPath: /go/src
+    env:
+    - name: GO111MODULE
+      value: "auto"
+  volumes:
+  - name: src-volume
+    configMap:
+      name: src-config
+  restartPolicy: Never

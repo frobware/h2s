@@ -1,0 +1,224 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: h2spec-goserver
+    annotations:
+      service.beta.openshift.io/serving-cert-secret-name: service-certs
+  spec:
+    selector:
+      app: h2spec-goserver
+    ports:
+      - port: 443
+        name: https
+        targetPort: 8443
+        protocol: TCP
+      - port: 80
+        name: http
+        targetPort: 8080
+        protocol: TCP
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: src-config
+  data:
+    go.mod: |
+        module h2s
+        go 1.14
+        require golang.org/x/net v0.0.0-20200319234117-63522dbf7eec
+    go.sum: |
+        golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
+        golang.org/x/net v0.0.0-20200319234117-63522dbf7eec h1:w0SItUiQ4sBiXBAwWNkyu8Fu2Qpn/dtDIcoPkPDqjRw=
+        golang.org/x/net v0.0.0-20200319234117-63522dbf7eec/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
+        golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+        golang.org/x/text v0.3.0 h1:g61tztE5qeGQ89tm6NTjjM9VPIm088od1l6aSorWRWg=
+        golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
+    server.go: |
+        package main
+        import (
+        	"fmt"
+        	"io/ioutil"
+        	"log"
+        	"net/http"
+        	"os"
+        	"strings"
+        	"golang.org/x/net/http2"
+        	"golang.org/x/net/http2/h2c"
+        )
+        const (
+        	defaultH2Port  = "8443"
+        	defaultH2CPort = "8080"
+        )
+        func handler(w http.ResponseWriter, r *http.Request) {
+        	if r.URL.Path != "/" {
+        		http.NotFound(w, r)
+        		return
+        	}
+        	// h2spec only requires that we handle GET and POST.
+        	switch r.Method {
+        	case "GET":
+        		for k, v := range r.URL.Query() {
+        			log.Printf("%s: %s\n", k, v)
+        		}
+        		w.Header().Set("Content-Type", "text/plain")
+        		w.Write([]byte("Received a GET request\n"))
+        		w.Write([]byte(strings.Repeat("Here's some data.", 1024)))
+        	case "POST":
+        		reqBody, err := ioutil.ReadAll(r.Body)
+        		if err != nil {
+        			log.Printf("ReadAll error: %v\n", err)
+        			return
+        		}
+        		defer r.Body.Close()
+        		log.Printf("Request Body: %q\n", reqBody)
+        		w.Header().Set("Content-Type", "text/plain")
+        		w.Write([]byte("Received a POST request\n"))
+        	default:
+        		w.WriteHeader(http.StatusNotImplemented)
+        		w.Write([]byte(http.StatusText(http.StatusNotImplemented)))
+        	}
+        }
+        func lookupEnv(key, defaultVal string) string {
+        	if val, ok := os.LookupEnv(key); ok {
+        		return val
+        	}
+        	return defaultVal
+        }
+        func main() {
+        	http.HandleFunc("/", handler)
+        	h2Addr := fmt.Sprintf(":%s", lookupEnv("H2PORT", defaultH2Port))
+        	h2cAddr := fmt.Sprintf(":%s", lookupEnv("H2CPORT", defaultH2CPort))
+        	go func() {
+        		// H2C Server
+        		server := &http.Server{
+        			Addr: h2cAddr,
+        			Handler: h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        				handler(w, r)
+        			}), &http2.Server{}),
+        		}
+        		if err := server.ListenAndServe(); err != nil {
+        			log.Fatal("ListenAndServe: ", err)
+        		}
+        	}()
+        	go func() {
+        		// H2 Server
+        		err := http.ListenAndServeTLS(h2Addr, "/etc/service-certs/tls.crt", "/etc/service-certs/tls.key", nil)
+        		if err != nil {
+        			log.Fatal("ListenAndServeTLS: ", err)
+        		}
+        	}()
+        	log.Printf("ListenAndServe: %s\n", h2cAddr)
+        	log.Printf("ListenAndServeTLS: %s\n", h2Addr)
+        	select {}
+        }
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: h2spec-goserver
+    labels:
+      app: h2spec-goserver
+  spec:
+    containers:
+    - image: golang:1.14
+      name: serve
+      command: ["/bin/bash"]
+      args: ["-c", "cd /go/src && GODEBUG=http2debug=0 go build -x -mod=readonly -o /tmp/server server.go && /tmp/server"]
+      env:
+      - name: GO111MODULE
+        value: "auto"
+      - name: GODEBUG
+        value: "http2debug=1"
+      ports:
+      - containerPort: 8443
+        protocol: TCP
+      - containerPort: 8080
+        protocol: TCP
+      volumeMounts:
+      - name: src-volume
+        mountPath: /go/src
+      - name: service-certs
+        mountPath: /etc/service-certs
+      - name: tmp
+        mountPath: /var/run
+    volumes:
+    - name: src-volume
+      configMap:
+        name: src-config
+    - name: conf
+      configMap:
+        name: h2spec-goserver
+    - name: service-certs
+      secret:
+        secretName: service-certs
+    - name: tmp
+      emptyDir: {}
+    - name: tmp2
+      emptyDir: {}
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    annotations:
+      haproxy.router.openshift.io/enable-h2c: "true"
+    labels:
+      app: h2spec-goserver
+    name: h2spec-goserver-edge
+  spec:
+    port:
+      targetPort: 8080
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+    to:
+      kind: Service
+      name: h2spec-goserver
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    labels:
+      app: h2spec-goserver
+    name: h2spec-goserver-reencrypt
+  spec:
+    port:
+      targetPort: 8443
+    tls:
+      termination: reencrypt
+      insecureEdgeTerminationPolicy: Redirect
+    to:
+      kind: Service
+      name: h2spec-goserver
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    labels:
+      app: h2spec-goserver
+    name: h2spec-goserver-passthrough
+  spec:
+    port:
+      targetPort: 8443
+    tls:
+      termination: passthrough
+      insecureEdgeTerminationPolicy: Redirect
+    to:
+      kind: Service
+      name: h2spec-goserver
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: h2spec
+    labels:
+      app: h2spec
+  spec:
+    containers:
+    - name: h2spec
+      image: docker.io/summerwind/h2spec:2.4.0
+      command: ["/bin/bash"]
+      args: ["-c", "while true; do echo -n 'heartbeat: '; date; sleep 60; done"]
+    terminationGracePeriodSeconds: 1

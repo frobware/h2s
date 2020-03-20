@@ -14,7 +14,7 @@ import (
 
 const (
 	defaultH2Port  = "8443"
-	defaultH2CPort = "9443"
+	defaultH2CPort = "8080"
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +28,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		for k, v := range r.URL.Query() {
-			fmt.Printf("%s: %s\n", k, v)
+			log.Printf("%s: %s\n", k, v)
 		}
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write([]byte("Received a GET request\n"))
@@ -36,11 +36,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		reqBody, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			fmt.Printf("ReadAll error: %v\n", err)
+			log.Printf("ReadAll error: %v\n", err)
 			return
 		}
 		defer r.Body.Close()
-		fmt.Printf("Request Body: %q\n", reqBody)
+		log.Printf("Request Body: %q\n", reqBody)
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write([]byte("Received a POST request\n"))
 	default:
@@ -60,18 +60,13 @@ func lookupEnv(key, defaultVal string) string {
 func main() {
 	http.HandleFunc("/", handler)
 
-	go func() {
-		// H2 Server
-		err := http.ListenAndServeTLS(":"+lookupEnv("H2PORT", defaultH2Port), "localhost.crt", "localhost.key", nil)
-		if err != nil {
-			log.Fatal("ListenAndServeTLS: ", err)
-		}
-	}()
+	h2Addr := fmt.Sprintf(":%s", lookupEnv("H2PORT", defaultH2Port))
+	h2cAddr := fmt.Sprintf(":%s", lookupEnv("H2CPORT", defaultH2CPort))
 
 	go func() {
 		// H2C Server
 		server := &http.Server{
-			Addr: ":" + lookupEnv("H2CPORT", defaultH2CPort),
+			Addr: h2cAddr,
 			Handler: h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				handler(w, r)
 			}), &http2.Server{}),
@@ -81,6 +76,18 @@ func main() {
 			log.Fatal("ListenAndServe: ", err)
 		}
 	}()
+
+	go func() {
+		// H2 Server
+		err := http.ListenAndServeTLS(h2Addr, "/etc/service-certs/tls.crt", "/etc/service-certs/tls.key", nil)
+
+		if err != nil {
+			log.Fatal("ListenAndServeTLS: ", err)
+		}
+	}()
+
+	log.Printf("ListenAndServe: %s\n", h2cAddr)
+	log.Printf("ListenAndServeTLS: %s\n", h2Addr)
 
 	select {}
 }
