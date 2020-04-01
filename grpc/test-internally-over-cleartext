@@ -1,0 +1,25 @@
+#!/usr/bin/bash
+
+set -eu
+
+export GRPC_GO_LOG_VERBOSITY_LEVEL=99
+export GRPC_GO_LOG_SEVERITY_LEVEL=info
+
+function oc_exec {
+    set -o xtrace
+    oc exec "$@"
+    set +o xtrace
+}
+
+: ${NAMESPACE:=default}
+host="grpc-interop.${NAMESPACE}.svc"
+
+echo "running interop test cases on internal service $host"
+
+if [ $# -eq 0 ]; then
+    oc_exec grpc-interop -c client-shell -- /workdir/grpc-client -host $host -port ${PORT:-1010}
+else
+    for testcase in "$@"; do
+	oc_exec grpc-interop -c client-shell -- /workdir/grpc-client -host $host -port ${PORT:-1010} $testcase
+    done
+fi

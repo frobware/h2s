@@ -1,0 +1,200 @@
+* gRPC Interop testing
+
+Goal is to validate and verify HTTP/2 support in HAProxy 2.0 for
+OpenShift 4.5.
+
+https://github.com/grpc/grpc/blob/master/doc/interop-test-descriptions.md
+
+* Server tests
+** EmptyCall
+   Server implements EmptyCall which immediately returns the empty
+   message.
+
+** UnaryCall
+   Server implements UnaryCall which immediately returns a
+   SimpleResponse with a payload body of size
+   SimpleRequest.response_size bytes and type as appropriate for the
+   SimpleRequest.response_type. If the server does not support the
+   response_type, then it should fail the RPC with INVALID_ARGUMENT.
+
+** CacheableUnaryCall
+   Server gets the default SimpleRequest proto as the request. The
+   content of the request is ignored. It returns the SimpleResponse
+   proto with the payload set to current timestamp. The timestamp is
+   an integer representing current time with nanosecond resolution.
+   This integer is formatted as ASCII decimal in the response. The
+   format is not really important as long as the response payload is
+   different for each request. In addition it adds
+
+   cache control headers such that the response can be cached by
+   proxies in the response path. Server should be behind a caching
+   proxy for this test to pass. Currently we set the max-age to 60
+   seconds.
+
+** CompressedResponse
+   When the client sets response_compressed to true, the server's
+   response is sent back compressed. Note that response_compressed is
+   present on both SimpleRequest (unary) and
+   StreamingOutputCallRequest (streaming).
+
+** CompressedRequest
+   When the client sets expect_compressed to true, the server expects
+   the client request to be compressed. If it's not, it fails the RPC
+   with INVALID_ARGUMENT. Note that response_compressed is present on
+   both SimpleRequest (unary) and StreamingOutputCallRequest
+   (streaming).
+
+** StreamingInputCall
+   Server implements StreamingInputCall which upon half close
+   immediately returns a StreamingInputCallResponse where
+   aggregated_payload_size is the sum of all request payload bodies
+   received.
+
+** StreamingOutputCall
+   Server implements StreamingOutputCall by replying, in order, with
+   one StreamingOutputCallResponse for each ResponseParameters in
+   StreamingOutputCallRequest. Each StreamingOutputCallResponse should
+   have a payload body of size ResponseParameters.size bytes, as
+   specified by its respective ResponseParameters. After sending all
+   responses, it closes with OK.
+
+** FullDuplexCall
+   Server implements FullDuplexCall by replying, in order, with one
+   StreamingOutputCallResponse for each ResponseParameters in each
+   StreamingOutputCallRequest. Each StreamingOutputCallResponse should
+   have a payload body of size ResponseParameters.size bytes, as
+   specified by its respective ResponseParameters. After receiving
+   half close and sending all responses, it closes with OK.
+
+** Echo Status
+   When the client sends a response_status in the request payload, the
+   server closes the stream with the status code and message contained
+   within said response_status. The server will not process any
+   further messages on the stream sent by the client. This can be used
+   by clients to verify correct handling of different status codes and
+   associated status messages end-to-end.
+
+** Echo Metadata
+   When the client sends metadata with the key
+   "x-grpc-test-echo-initial" with its request, the server sends back
+   exactly this key and the corresponding value back to the client as
+   part of initial metadata. When the client sends metadata with the
+   key "x-grpc-test-echo-trailing-bin" with its request, the server
+   sends back exactly this key and the corresponding value back to the
+   client as trailing metadata.
+
+* Client tests
+** empty_unary
+   This test verifies that implementations support zero-size messages.
+   Ideally, client implementations would verify that the request and
+   response were zero bytes serialized, but this is generally
+   prohibitive to perform, so is not required.
+
+** cacheable_unary
+   This test verifies that gRPC requests marked as cacheable use GET
+   verb instead of POST, and that server sets appropriate cache
+   control headers for the response to be cached by a proxy. This test
+   requires that the server is behind a caching proxy. Use of current
+   timestamp in the request prevents accidental cache matches left
+   over from previous tests.
+
+** large_unary
+   This test verifies unary calls succeed in sending messages, and
+   touches on flow control (even if compression is enabled on the
+   channel).
+
+** client_compressed_unary
+   This test verifies the client can compress unary messages by
+   sending two unary calls, for compressed and uncompressed payloads.
+   It also sends an initial probing request to verify whether the
+   server supports the CompressedRequest feature by checking if the
+   probing call fails with an INVALID_ARGUMENT status.
+
+** server_compressed_unary
+   This test verifies the server can compress unary messages. It sends
+   two unary requests, expecting the server's response to be
+   compressed or not according to the response_compressed boolean.
+
+** client_streaming
+   This test verifies that client-only streaming succeeds.
+
+** client_compressed_streaming
+   This test verifies the client can compress requests on per-message
+   basis by performing a two-request streaming call. It also sends an
+   initial probing request to verify whether the server supports the
+   CompressedRequest feature by checking if the probing call fails
+   with an INVALID_ARGUMENT status.
+
+** server_compressed_streaming
+   This test verifies that the server can compress streaming messages
+   and disable compression on individual messages, expecting the
+   server's response to be compressed or not according to the
+   response_compressed boolean.
+
+** ping_pong
+   This test verifies that full duplex bidi is supported.
+
+** empty_stream
+   This test verifies that streams support having zero-messages in
+   both directions.
+
+** custom_metadata
+   This test verifies that custom metadata in either binary or ascii
+   format can be sent as initial-metadata by the client and as both
+   initial- and trailing-metadata by the server.
+
+** status_code_and_message
+   This test verifies unary calls succeed in sending messages, and
+   propagate back status code and message sent along with the
+   messages.
+
+** special_status_message
+   This test verifies Unicode and whitespace is correctly processed in
+   status message. "\t" is horizontal tab. "\r" is carriage return.
+   "\n" is line feed.
+
+** unimplemented_service
+   This test verifies calling an unimplemented server returns the
+   UNIMPLEMENTED status code.
+
+** cancel_after_begin
+   This test verifies that a request can be cancelled after metadata
+   has been sent but before payloads are sent.
+
+** cancel_after_first_response
+   This test verifies that a request can be cancelled after receiving
+   a message from the server.
+
+** timeout_on_sleeping_server
+   This test verifies that an RPC request whose lifetime exceeds its
+   configured timeout value will end with the DeadlineExceeded status.
+
+** concurrent_large_unary
+   Status: TODO. Client performs 1000 large_unary tests in parallel on
+   the same channel.
+
+
+* DEMO
+
+  We reuse the pre-built interop test protobuf and create a
+  client/server that speaks this protocol.
+
+  The following tests are enabled on the server:
+
+    - cancel_after_begin
+    - cancel_after_first_response
+    - client_streaming
+    - custom_metadata
+    - empty_stream
+    - empty_unary
+    - large_unary
+    - ping_pong
+    - server_streaming
+    - special_status_message
+    - status_code_and_message
+    - timeout_on_sleeping_server
+    - unimplemented_method
+    - unimplemented_service
+
+** Test from client pod via internal service
+** Test from client pod via route

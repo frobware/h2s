@@ -1,0 +1,4 @@
+#!/bin/bash
+
+oc get pods --selector app=grpc-interop --output json \
+    | jq --raw-output '.items[].spec.containers[].name'

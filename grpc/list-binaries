@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -x
+kubectl exec grpc-interop -c client-shell -- ls -l /workdir
+

@@ -1,0 +1,385 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: grpc-interop
+    annotations:
+      service.beta.openshift.io/serving-cert-secret-name: service-certs
+  spec:
+    selector:
+      app: grpc-interop
+    ports:
+      - port: 443
+        name: https
+        targetPort: 443
+        protocol: TCP
+      - port: 1010
+        name: h2c
+        targetPort: 1010
+        protocol: TCP
+- apiVersion: v1
+  kind: ConfigMap
+  labels:
+    app: grpc-interop
+  metadata:
+    name: src-config
+  data:
+    go.mod: |
+        module grpc
+        go 1.14
+        require google.golang.org/grpc v1.28.0
+    go.sum: |
+        cloud.google.com/go v0.26.0 h1:e0WKqKTd5BnrG8aKH3J3h+QvEIQtSUcf2n5UZ5ZgLtQ=
+        cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
+        github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+        github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
+        github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
+        github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
+        github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
+        github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1mIlRU8Am5FuJP05cCM98=
+        github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
+        github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b/go.mod h1:SBH7ygxi8pfUlaOkMMuAQtPIUF8ecWP5IEl/CR7VP2Q=
+        github.com/golang/mock v1.1.1/go.mod h1:oTYuIxOrZwtPieC+H1uAHpcLFnEyAGVDL/k47Jfbm0A=
+        github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
+        github.com/golang/protobuf v1.3.2/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
+        github.com/golang/protobuf v1.3.3 h1:gyjaxf+svBWX08ZjK86iN9geUJF0H6gp2IRKX6Nf6/I=
+        github.com/golang/protobuf v1.3.3/go.mod h1:vzj43D7+SQXF/4pzW/hwtAqwc6iTitCiVSaWz5lYuqw=
+        github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5aqRK0M=
+        github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=
+        golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
+        golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
+        golang.org/x/lint v0.0.0-20181026193005-c67002cb31c3/go.mod h1:UVdnD1Gm6xHRNCYTkRU2/jEulfH38KcIWyp/GAMgvoE=
+        golang.org/x/lint v0.0.0-20190227174305-5b3e6a55c961/go.mod h1:wehouNa3lNwaWXcvxsM5YxQ5yQlVC4a0KAMCusXpPoU=
+        golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3/go.mod h1:6SW0HCj/g11FgYtHlgUYUwCkIfeOF89ocIRzGO/8vkc=
+        golang.org/x/net v0.0.0-20180724234803-3673e40ba225/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
+        golang.org/x/net v0.0.0-20180826012351-8a410e7b638d/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
+        golang.org/x/net v0.0.0-20190213061140-3a22650c66bd/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
+        golang.org/x/net v0.0.0-20190311183353-d8887717615a h1:oWX7TPOiFAMXLq8o0ikBYfCJVlRHBcsciT5bXOrH628=
+        golang.org/x/net v0.0.0-20190311183353-d8887717615a/go.mod h1:t9HGtf8HONx5eT2rtn7q6eTqICYqUVnKs3thJo3Qplg=
+        golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be h1:vEDujvNQGv4jgYKudGeI/+DAX4Jffq6hpD55MmoEvKs=
+        golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
+        golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
+        golang.org/x/sync v0.0.0-20181108010431-42b317875d0f/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
+        golang.org/x/sync v0.0.0-20190423024810-112230192c58/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
+        golang.org/x/sys v0.0.0-20180830151530-49385e6e1522/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+        golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a h1:1BGLXjeY4akVXGgbC9HugT3Jv3hCI0z56oJR5vAMgBU=
+        golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+        golang.org/x/text v0.3.0 h1:g61tztE5qeGQ89tm6NTjjM9VPIm088od1l6aSorWRWg=
+        golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
+        golang.org/x/tools v0.0.0-20190114222345-bf090417da8b/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
+        golang.org/x/tools v0.0.0-20190226205152-f727befe758c/go.mod h1:9Yl7xja0Znq3iFh3HoIrodX9oNMXvdceNzlUR8zjMvY=
+        golang.org/x/tools v0.0.0-20190311212946-11955173bddd/go.mod h1:LCzVGOaR6xXOjkQ3onu1FJEFr0SW1gC7cKk1uF8kGRs=
+        golang.org/x/tools v0.0.0-20190524140312-2c0ae7006135/go.mod h1:RgjU9mgBXZiqYHBnxXauZ1Gv1EHHAz9KjViQ78xBX0Q=
+        google.golang.org/appengine v1.1.0/go.mod h1:EbEs0AVv82hx2wNQdGPgUI5lhzA/G0D9YwlJXL52JkM=
+        google.golang.org/appengine v1.4.0/go.mod h1:xpcJRLb0r/rnEns0DIKYYv+WjYCduHsrkT7/EB5XEv4=
+        google.golang.org/genproto v0.0.0-20180817151627-c66870c02cf8/go.mod h1:JiN7NxoALGmiZfu7CAH4rXhgtRTLTxftemlI0sWmxmc=
+        google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55 h1:gSJIx1SDwno+2ElGhA4+qG2zF97qiUzTM+rQ0klBOcE=
+        google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55/go.mod h1:DMBHOl98Agz4BDEuKkezgsaosCRResVns1a3J2ZsMNc=
+        google.golang.org/grpc v1.19.0/go.mod h1:mqu4LbDTu4XGKhr4mRzUsmM4RtVoemTSY81AxZiDr8c=
+        google.golang.org/grpc v1.23.0/go.mod h1:Y5yQAOtifL1yxbo5wqy6BxZv8vAUGQwXBOALyacEbxg=
+        google.golang.org/grpc v1.25.1/go.mod h1:c3i+UQWmh7LiEpx4sFZnkU36qjEYZ0imhYfXVyQciAY=
+        google.golang.org/grpc v1.28.0 h1:bO/TA4OxCOummhSf10siHuG7vJOiwh7SpRpFZDkOgl4=
+        google.golang.org/grpc v1.28.0/go.mod h1:rpkK4SK4GF4Ach/+MFLZUBavHOvF2JJB5uozKKal+60=
+        honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
+        honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
+    server.go: |
+        package main
+        import (
+        	"log"
+        	"net"
+        	"os"
+        	"google.golang.org/grpc"
+        	"google.golang.org/grpc/credentials"
+        	"google.golang.org/grpc/interop"
+        	testpb "google.golang.org/grpc/interop/grpc_testing"
+        )
+        const (
+        	defaultH2Port  = "443"
+        	defaultH2CPort = "1010"
+        	defaultTLSCrt  = "/etc/service-certs/tls.crt"
+        	defaultTLSKey  = "/etc/service-certs/tls.key"
+        )
+        func lookupEnv(key, defaultVal string) string {
+        	if val, ok := os.LookupEnv(key); ok {
+        		return val
+        	}
+        	return defaultVal
+        }
+        func main() {
+        	go func() {
+        		crt := lookupEnv("TLS_CRT", defaultTLSCrt)
+        		key := lookupEnv("TLS_KEY", defaultTLSKey)
+        		creds, err := credentials.NewServerTLSFromFile(crt, key)
+        		if err != nil {
+        			log.Fatalf("NewServerTLSFromFile failed: %v", err)
+        		}
+        		server := grpc.NewServer(grpc.Creds(creds))
+        		testpb.RegisterTestServiceServer(server, interop.NewTestServer())
+        		lis, err := net.Listen("tcp", ":"+lookupEnv("H2_PORT", defaultH2Port))
+        		if err != nil {
+        			log.Fatalf("listen failed: %v", err)
+        		}
+        		log.Printf("Serving h2 at: %v", lis.Addr())
+        		if err = server.Serve(lis); err != nil {
+        			log.Fatalf("failed to serve: %v", err)
+        		}
+        	}()
+        	go func() {
+        		server := grpc.NewServer()
+        		testpb.RegisterTestServiceServer(server, interop.NewTestServer())
+        		lis, err := net.Listen("tcp", ":"+lookupEnv("H2C_PORT", defaultH2CPort))
+        		if err != nil {
+        			log.Fatalf("listen failed: %v", err)
+        		}
+        		log.Printf("Serving h2c at: %v", lis.Addr())
+        		if err = server.Serve(lis); err != nil {
+        			log.Fatalf("failed to serve: %v", err)
+        		}
+        	}()
+        	select {}
+        }
+    client.go: |
+        package main
+        import (
+        	"crypto/tls"
+        	"crypto/x509"
+        	"flag"
+        	"io/ioutil"
+        	"net"
+        	"google.golang.org/grpc"
+        	"google.golang.org/grpc/credentials"
+        	"google.golang.org/grpc/grpclog"
+        	"google.golang.org/grpc/interop"
+        	testpb "google.golang.org/grpc/interop/grpc_testing"
+        )
+        type testFn func(tc testpb.TestServiceClient, args ...grpc.CallOption)
+        var (
+        	insecure = flag.Bool("insecure", false, "Skip TLS")
+        	caFile   = flag.String("ca-cert", "", "The file containing the CA root cert")
+        	useTLS   = flag.Bool("tls", false, "Connection uses TLS, if true")
+        	host     = flag.String("host", "localhost", "host address")
+        	port     = flag.String("port", "443", "port number")
+        )
+        var defaultTestCases = map[string]testFn{
+        	"cancel_after_begin":          interop.DoCancelAfterBegin,
+        	"cancel_after_first_response": interop.DoCancelAfterFirstResponse,
+        	"client_streaming":            interop.DoClientStreaming,
+        	"custom_metadata":             interop.DoCustomMetadata,
+        	"empty_stream":                interop.DoEmptyStream,
+        	"empty_unary":                 interop.DoEmptyUnaryCall,
+        	"large_unary":                 interop.DoLargeUnaryCall,
+        	"ping_pong":                   interop.DoPingPong,
+        	"server_streaming":            interop.DoServerStreaming,
+        	"special_status_message":      interop.DoSpecialStatusMessage,
+        	"status_code_and_message":     interop.DoStatusCodeAndMessage,
+        	"timeout_on_sleeping_server":  interop.DoTimeoutOnSleepingServer,
+        	"unimplemented_method":        nil, // special case
+        	"unimplemented_service":       nil, // special case
+        }
+        func main() {
+        	flag.Parse()
+        	var opts []grpc.DialOption
+        	if *useTLS {
+        		tlsConfig := &tls.Config{
+        			InsecureSkipVerify: *insecure,
+        		}
+        		if *caFile != "" {
+        			// Avoid auth errors by adding service CA to the rootCA pool. Without leads to:
+        			//     transport: authentication handshake failed: x509: certificate signed by unknown authority"
+        			rootCAs, _ := x509.SystemCertPool()
+        			if rootCAs == nil {
+        				rootCAs = x509.NewCertPool()
+        			}
+        			certs, err := ioutil.ReadFile(*caFile)
+        			if err != nil {
+        				grpclog.Fatalf("Failed to append %q to RootCAs: %v", *caFile, err)
+        			}
+        			if ok := rootCAs.AppendCertsFromPEM(certs); !ok {
+        				grpclog.Infoln("No certs appended, using system certs only")
+        			}
+        			tlsConfig.RootCAs = rootCAs
+        		}
+        		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
+        	} else {
+        		opts = append(opts, grpc.WithInsecure())
+        	}
+        	conn, err := grpc.Dial(net.JoinHostPort(*host, *port), append(opts, grpc.WithBlock())...)
+        	if err != nil {
+        		grpclog.Fatalf("Dial failed: %v", err)
+        	}
+        	defer conn.Close()
+        	tc := testpb.NewTestServiceClient(conn)
+        	args := flag.Args()
+        	if len(args) == 0 {
+        		for k := range defaultTestCases {
+        			args = append(args, k)
+        		}
+        	}
+        	for i, name := range args {
+        		if fn, ok := defaultTestCases[name]; ok && fn != nil {
+        			fn(tc)
+        		} else if ok && fn == nil {
+        			switch name {
+        			case "unimplemented_method":
+        				interop.DoUnimplementedMethod(conn)
+        			case "unimplemented_service":
+        				interop.DoUnimplementedService(testpb.NewUnimplementedServiceClient(conn))
+        			}
+        		} else {
+        			grpclog.Fatal("Unsupported test case: ", name)
+        		}
+        		grpclog.Infof("[#%v/%v] Test %q DONE\n", i+1, len(args), name)
+        	}
+        }
+        // /workdir/grpc-client -host grpc-interop.demo.svc -port 443 -tls -ca-cert /etc/service-ca/service-ca.crt
+        // /workdir/grpc-client -host grpc-interop.demo.svc -port 1010
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    annotations:
+      service.beta.openshift.io/inject-cabundle: "true"
+    labels:
+      app: grpc-interop
+    name: service-ca
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: grpc-interop
+    labels:
+      app: grpc-interop
+  spec:
+    containers:
+    - image: golang:1.14
+      name: server
+      command: ["/workdir/grpc-server"]
+      env:
+      - name: GRPC_GO_LOG_VERBOSITY_LEVEL
+        value: "99"
+      - name: GRPC_GO_LOG_SEVERITY_LEVEL
+        value: "info"
+      ports:
+      - containerPort: 443
+        protocol: TCP
+      - containerPort: 1010
+        protocol: TCP
+      volumeMounts:
+      - name: service-certs
+        mountPath: /etc/service-certs
+      - name: tmp
+        mountPath: /var/run
+      - name: workdir
+        mountPath: /workdir
+      readOnly: true
+    - image: golang:1.14
+      name: client-shell
+      command: ["/bin/bash"]
+      args: ["-c", "sleep 100000"]
+      env:
+      - name: GRPC_GO_LOG_VERBOSITY_LEVEL
+        value: "99"
+      - name: GRPC_GO_LOG_SEVERITY_LEVEL
+        value: "info"
+      volumeMounts:
+      - name: service-certs
+        secret:
+          secretName: service-certs
+        mountPath: /etc/service-certs
+      - name: tmp
+        mountPath: /var/run
+      - name: workdir
+        mountPath: /workdir
+      - name: service-ca
+        mountPath: /etc/service-ca
+    initContainers:
+    - image: golang:1.14
+      name: builder
+      command: ["/bin/bash", "-c"]
+      args:
+        - set -e;
+          cd /go/src;
+          go build -v -mod=readonly -o /workdir/grpc-server server.go;
+          go build -v -mod=readonly -o /workdir/grpc-client client.go;
+      env:
+      - name: GO111MODULE
+        value: "auto"
+      volumeMounts:
+      - name: src-volume
+        mountPath: /go/src
+      - name: tmp
+        mountPath: /var/run
+      - name: workdir
+        mountPath: /workdir
+    volumes:
+    - name: src-volume
+      configMap:
+        name: src-config
+    - name: service-certs
+      secret:
+        secretName: service-certs
+    - name: tmp
+      emptyDir: {}
+    - name: workdir
+      emptyDir: {}
+    - configMap:
+        items:
+        - key: service-ca.crt
+          path: service-ca.crt
+        name: service-ca
+      name: service-ca
+  labels:
+    app: grpc-interop
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    annotations:
+      haproxy.router.openshift.io/enable-h2c: "true"
+    labels:
+      app: grpc-interop
+    name: grpc-interop-edge
+  spec:
+    port:
+      targetPort: 1010
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+    to:
+      kind: Service
+      name: grpc-interop
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    labels:
+      app: grpc-interop
+    name: grpc-interop-reencrypt
+  spec:
+    port:
+      targetPort: 443
+    tls:
+      termination: reencrypt
+      insecureEdgeTerminationPolicy: Redirect
+    to:
+      kind: Service
+      name: grpc-interop
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    labels:
+      app: grpc-interop
+    name: grpc-interop-passthrough
+  spec:
+    port:
+      targetPort: 443
+    tls:
+      termination: passthrough
+      insecureEdgeTerminationPolicy: Redirect
+    to:
+      kind: Service
+      name: grpc-interop
+      weight: 100
+    wildcardPolicy: None

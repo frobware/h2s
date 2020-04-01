@@ -1,0 +1,20 @@
+#!/usr/bin/bash
+
+set -eu
+
+export GRPC_GO_LOG_VERBOSITY_LEVEL=99
+export GRPC_GO_LOG_SEVERITY_LEVEL=info
+
+: ${ROUTES:="passthrough reencrypt"}
+
+for route in ${ROUTES}; do
+    host=$(oc get routes grpc-interop-${route} -o json | jq -r '.spec.host')
+    echo "$route: running interop test cases"
+    if [ $# -eq 0 ]; then
+	./client/client -insecure -tls -host $host -port ${PORT:-443}
+    else
+	for testcase in "$@"; do
+	    ./client/client -insecure -tls -host $host -port ${PORT:-443} "$testcase"
+	done
+    fi
+done
