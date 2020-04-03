@@ -106,6 +106,3 @@ func main() {
 		grpclog.Infof("[#%v/%v] Test %q DONE\n", i+1, len(args), name)
 	}
 }
-
-// /workdir/grpc-client -host grpc-interop.demo.svc -port 443 -tls -ca-cert /etc/service-ca/service-ca.crt
-// /workdir/grpc-client -host grpc-interop.demo.svc -port 1010

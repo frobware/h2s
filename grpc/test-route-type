@@ -14,12 +14,10 @@ for route in ${ROUTES}; do
     host=$(oc get routes grpc-interop-${route} -o json | jq -r '.spec.host')
     echo "$route: running interop test cases"
     if [ $# -eq 0 ]; then
-	#oc exec grpc-interop -c client-shell -- /workdir/grpc-client -insecure -tls -host $host -port ${PORT:-443}
 	oc_exec grpc-interop -c client-shell -- /workdir/grpc-client -insecure -tls -host $host -port ${PORT:-443}
     else
 	for testcase in "$@"; do
 	    oc_exec grpc-interop -c client-shell -- /workdir/grpc-client -insecure -tls -host $host -port ${PORT:-443} "$testcase"
-	    #oc exec grpc-interop -c client-shell -- /workdir/grpc-client -insecure -tls -host $host -port ${PORT:-443} "$testcase"
 	done
     fi
 done
